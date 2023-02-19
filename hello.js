@@ -1,1 +1,3 @@
-export const hello = (name) => `Hello ${name}`;
+const hello = (name) => `Hello ${name}`;
+
+module.exports = hello;
