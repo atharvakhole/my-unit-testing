@@ -1,4 +1,7 @@
+import { createNewCart, getCarts } from "./script";
+
 class Cart {
+  private _items: string[];
   constructor() {
     this._items = [];
   }
@@ -7,11 +10,11 @@ class Cart {
     return [...this._items];
   }
 
-  addToCart(item) {
+  addToCart(item: string) {
     this._items = [...this._items, item];
   }
 
-  removeFromCart(item) {
+  removeFromCart(item: string) {
     for (let i = 0; i < this.items.length; i++) {
       const element = this.items[i];
 
@@ -22,4 +25,4 @@ class Cart {
   }
 }
 
-module.exports = Cart;
+export default Cart;
