@@ -1,4 +1,4 @@
-import { createNewCart, getCarts } from "./script";
+import { createNewCart, getCart } from "./script";
 
 class Cart {
   private _items: string[];
