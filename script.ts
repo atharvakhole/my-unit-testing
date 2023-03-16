@@ -27,6 +27,12 @@ export const getCart = async (username: string) => {
   return user;
 };
 
+export const getAllCarts = async () => {
+  const carts = await prisma.carts.findMany();
+  prisma.$disconnect();
+  return carts;
+};
+
 export const removeCart = async (id: number) => {
   await prisma.carts.delete({
     where: {
