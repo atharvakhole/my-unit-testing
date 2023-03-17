@@ -3,6 +3,7 @@ require("dotenv").config();
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
+// carts table
 export const deleteAllCarts = async () => {
   await prisma.$queryRawUnsafe("Truncate carts restart identity cascade");
   prisma.$disconnect();
@@ -41,3 +42,5 @@ export const removeCart = async (id: number) => {
   });
   prisma.$disconnect();
 };
+
+// cart_items table

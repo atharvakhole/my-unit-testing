@@ -5,6 +5,8 @@ import {
   getCart,
   deleteAllCarts,
 } from "../script";
+import Cart from "../Cart";
+import { logger } from "../logger";
 
 // Ideally, you'd want to define deleteAllCarts as a utility function
 // inside this test suite as it won't be a function that gets used in the application
@@ -38,5 +40,21 @@ describe("A new cart is created for every user", () => {
     const cartsReturned = await getAllCarts();
 
     expect(cartsReturned).toEqual(expectedCarts);
+  });
+});
+
+describe("logging new items", () => {
+  const cart = new Cart();
+
+  test("adding an item to cart calls the logger with the right arguments", () => {
+    const mockLogger = jest.spyOn(logger, "logInfo");
+    mockLogger.mockImplementation(() => {});
+    cart.addToCart("cheesecake", 5);
+
+    const firstCallArgs = mockLogger.mock.calls[0];
+    const [firstArgs, SecondArgs] = firstCallArgs;
+
+    expect(firstArgs).toEqual({ item: "cheesecake", quantity: 5 });
+    expect(SecondArgs).toEqual("item added to the cart");
   });
 });
