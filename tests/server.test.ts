@@ -45,3 +45,21 @@ describe("add items to a cart", () => {
     expect(carts).toEqual(new Map());
   });
 });
+
+describe("retrieve user cart", () => {
+  beforeEach(() => {
+    inventory.clear();
+    carts.clear();
+  });
+
+  test("returns correct cart for existing user", async () => {
+    carts.set("test_user", ["cheesecake", "brownie"]);
+
+    const response = await axios.get(`${apiRoot}/carts/test_user/items`);
+
+    expect(response.status).toEqual(200);
+    expect(await response.data).toEqual({
+      cart: ["cheesecake", "brownie"],
+    });
+  });
+});

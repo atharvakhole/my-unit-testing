@@ -7,7 +7,12 @@ export let inventory = new Map<string, number>();
 
 app.get("/carts/:username/items", (req, res) => {
   const cart = carts.get(req.params.username);
-  cart ? res.send({ cart: cart }) : res.status(404);
+
+  if (cart != undefined) {
+    res.send({ cart: cart });
+  } else {
+    res.status(404);
+  }
 });
 
 app.post("/carts/:username/items/:item", (req, res) => {
