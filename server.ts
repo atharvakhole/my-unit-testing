@@ -1,9 +1,11 @@
 import express from "express";
+import { carts, addItemToCart } from "./controllers/cartController";
+import { inventory } from "./controllers/inventoryController";
 const app = express();
 const port = 3000;
 
-export let carts = new Map<string, string[]>();
-export let inventory = new Map<string, number>();
+// export let carts = new Map<string, string[]>();
+// export let inventory = new Map<string, number>();
 
 app.get("/carts/:username/items", (req, res) => {
   if (carts.has(req.params.username)) {
@@ -15,18 +17,14 @@ app.get("/carts/:username/items", (req, res) => {
 });
 
 app.post("/carts/:username/items/:item", (req, res) => {
-  const { username, item } = req.params;
-  const isAvailable = inventory.has(item) && inventory.get(item)! > 0;
-
-  if (!isAvailable) {
-    res.status(400).send({ message: `${item} is unavailable` });
+  try {
+    const { username, item } = req.params;
+    const newItems = addItemToCart(username, item);
+    res.send({ cart: newItems });
+  } catch (e: any) {
+    res.status(e.code).send({ message: e.message });
     return;
   }
-
-  const newItems = (carts.get(username) || []).concat(item);
-  carts.set(username, newItems);
-  inventory.set(item, inventory.get(item)! - 1);
-  res.send({ cart: newItems });
 });
 
 app.delete("/carts/:username/items/:item", (req, res) => {

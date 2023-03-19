@@ -1,4 +1,6 @@
-import { server as app, carts, inventory } from "../server";
+import { server as app } from "../server";
+import { carts } from "../controllers/cartController";
+import { inventory } from "../controllers/inventoryController";
 import axios from "axios";
 
 const apiRoot = "http://localhost:3000";
