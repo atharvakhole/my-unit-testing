@@ -6,12 +6,11 @@ export let carts = new Map<string, string[]>();
 export let inventory = new Map<string, number>();
 
 app.get("/carts/:username/items", (req, res) => {
-  const cart = carts.get(req.params.username);
-
-  if (cart != undefined) {
+  if (carts.has(req.params.username)) {
+    const cart = carts.get(req.params.username);
     res.send({ cart: cart });
   } else {
-    res.status(404);
+    res.status(404).send({ message: "User not found" });
   }
 });
 

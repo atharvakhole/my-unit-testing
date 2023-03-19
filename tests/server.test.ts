@@ -62,4 +62,18 @@ describe("retrieve user cart", () => {
       cart: ["cheesecake", "brownie"],
     });
   });
+
+  test("request fails with an error for non-existing user", async () => {
+    carts.set("test_user", ["cheesecake", "brownie"]);
+    let response;
+
+    try {
+      response = await axios.get(`${apiRoot}/carts/unknown_user/items`);
+    } catch (error: any) {
+      response = error.response;
+    }
+
+    expect(response.status).toEqual(404);
+    expect(await response.data).toEqual({ message: "User not found" });
+  });
 });
