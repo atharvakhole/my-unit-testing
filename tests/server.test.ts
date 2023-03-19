@@ -1,12 +1,16 @@
-import { server as app, inventory } from "../server";
+import { server as app, carts, inventory } from "../server";
 import axios from "axios";
 
 const apiRoot = "http://localhost:3000";
 
 afterAll(() => app.close());
-afterEach(() => inventory.clear());
 
 describe("add items to a cart", () => {
+  beforeEach(() => {
+    inventory.clear();
+    carts.clear();
+  });
+
   test("adding available items", async () => {
     inventory.set("cheesecake", 1);
 
@@ -17,5 +21,27 @@ describe("add items to a cart", () => {
     expect(response.status).toEqual(200);
     expect(await response.data).toEqual({ cart: ["cheesecake"] });
     expect(inventory.get("cheesecake")).toEqual(0);
+    expect(carts).toEqual(new Map([["test_user", ["cheesecake"]]]));
+  });
+
+  test("adding unavailable items", async () => {
+    inventory.set("cheesecake", 0);
+
+    let response;
+
+    try {
+      response = await axios.post(
+        `${apiRoot}/carts/test_user/items/cheesecake`
+      );
+    } catch (error: any) {
+      response = error.response;
+    }
+
+    expect(response.status).toEqual(400);
+    expect(await response.data).toEqual({
+      message: "cheesecake is unavailable",
+    });
+    expect(inventory.get("cheesecake")).toEqual(0);
+    expect(carts).toEqual(new Map());
   });
 });
