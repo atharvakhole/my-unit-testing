@@ -11,3 +11,7 @@ export const removeFromInventory = (item: string) => {
 
   inventory.set(item, inventory.get(item)! - 1);
 };
+
+export const addToInvetory = (item: string) => {
+  inventory.set(item, (inventory.get(item) || 0) + 1);
+};
