@@ -31,7 +31,11 @@ app.post("/carts/:username/items/:item", (req, res) => {
 
 app.delete("/carts/:username/items/:item", (req, res) => {
   const { username, item } = req.params;
-  if (!carts.has(username) || !carts.get(username)?.includes(item)) {
+  if (!carts.has(username)) {
+    res.status(404).send({ message: "User not found" });
+    return;
+  }
+  if (!carts.get(username)?.includes(item)) {
     res.status(400).send({
       message: `${item} is not in the cart`,
     });

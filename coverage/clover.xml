@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1679159786748" clover="3.2.0">
-  <project timestamp="1679159786748" name="All files">
-    <metrics statements="121" coveredstatements="94" conditionals="97" coveredconditionals="48" methods="37" coveredmethods="30" elements="255" coveredelements="172" complexity="0" loc="121" ncloc="121" packages="1" files="4" classes="4"/>
+<coverage generated="1679233097634" clover="3.2.0">
+  <project timestamp="1679233097634" name="All files">
+    <metrics statements="124" coveredstatements="111" conditionals="96" coveredconditionals="56" methods="37" coveredmethods="33" elements="257" coveredelements="200" complexity="0" loc="124" ncloc="124" packages="1" files="4" classes="4"/>
     <file name="Cart.ts" path="D:\CS Projects\node-projects\my-unit-testing\Cart.ts">
       <metrics statements="11" coveredstatements="6" conditionals="1" coveredconditionals="0" methods="4" coveredmethods="2"/>
       <line num="2" count="1" type="stmt"/>
@@ -102,38 +102,41 @@
       <line num="117" count="1" type="stmt"/>
     </file>
     <file name="server.ts" path="D:\CS Projects\node-projects\my-unit-testing\server.ts">
-      <metrics statements="31" coveredstatements="17" conditionals="14" coveredconditionals="4" methods="5" coveredmethods="2"/>
+      <metrics statements="34" coveredstatements="34" conditionals="13" coveredconditionals="12" methods="5" coveredmethods="5"/>
       <line num="1" count="1" type="stmt"/>
       <line num="2" count="1" type="stmt"/>
       <line num="3" count="1" type="stmt"/>
       <line num="5" count="1" type="stmt"/>
       <line num="6" count="1" type="stmt"/>
       <line num="8" count="1" type="stmt"/>
-      <line num="9" count="0" type="stmt"/>
-      <line num="10" count="0" type="cond" truecount="0" falsecount="2"/>
+      <line num="9" count="2" type="cond" truecount="2" falsecount="0"/>
+      <line num="10" count="1" type="stmt"/>
+      <line num="11" count="1" type="stmt"/>
       <line num="13" count="1" type="stmt"/>
-      <line num="14" count="1" type="stmt"/>
-      <line num="15" count="1" type="cond" truecount="2" falsecount="0"/>
-      <line num="17" count="1" type="cond" truecount="0" falsecount="1"/>
-      <line num="18" count="0" type="stmt"/>
-      <line num="19" count="0" type="stmt"/>
-      <line num="20" count="0" type="stmt"/>
-      <line num="23" count="1" type="cond" truecount="2" falsecount="0"/>
-      <line num="24" count="1" type="stmt"/>
-      <line num="25" count="1" type="stmt"/>
-      <line num="26" count="1" type="stmt"/>
+      <line num="17" count="1" type="stmt"/>
+      <line num="18" count="2" type="stmt"/>
+      <line num="19" count="2" type="cond" truecount="2" falsecount="0"/>
+      <line num="21" count="2" type="cond" truecount="1" falsecount="0"/>
+      <line num="22" count="1" type="stmt"/>
+      <line num="23" count="1" type="stmt"/>
+      <line num="26" count="1" type="cond" truecount="2" falsecount="0"/>
+      <line num="27" count="1" type="stmt"/>
+      <line num="28" count="1" type="stmt"/>
       <line num="29" count="1" type="stmt"/>
-      <line num="30" count="0" type="stmt"/>
-      <line num="31" count="0" type="cond" truecount="0" falsecount="3"/>
-      <line num="32" count="0" type="stmt"/>
-      <line num="35" count="0" type="stmt"/>
-      <line num="36" count="0" type="stmt"/>
-      <line num="39" count="0" type="cond" truecount="0" falsecount="2"/>
-      <line num="40" count="0" type="cond" truecount="0" falsecount="2"/>
-      <line num="41" count="0" type="stmt"/>
-      <line num="42" count="0" type="stmt"/>
-      <line num="45" count="1" type="stmt"/>
-      <line num="46" count="1" type="stmt"/>
+      <line num="32" count="1" type="stmt"/>
+      <line num="33" count="3" type="stmt"/>
+      <line num="34" count="3" type="cond" truecount="1" falsecount="0"/>
+      <line num="35" count="1" type="stmt"/>
+      <line num="36" count="1" type="stmt"/>
+      <line num="38" count="2" type="cond" truecount="1" falsecount="0"/>
+      <line num="39" count="1" type="stmt"/>
+      <line num="42" count="1" type="stmt"/>
+      <line num="45" count="3" type="cond" truecount="1" falsecount="1"/>
+      <line num="46" count="1" type="cond" truecount="2" falsecount="0"/>
+      <line num="47" count="1" type="stmt"/>
+      <line num="48" count="1" type="stmt"/>
+      <line num="51" count="1" type="stmt"/>
+      <line num="52" count="1" type="stmt"/>
     </file>
   </project>
 </coverage>
