@@ -1,14 +1,25 @@
-import express from "express";
+import express, { NextFunction, Request, Response } from "express";
 import {
   addItemToCart,
   removeItemFromCart,
   getUserCart,
 } from "./controllers/cartController";
-import { users, hashPassword } from "./middleware/authenticationController";
+import {
+  users,
+  hashPassword,
+  authenticationMiddleware,
+} from "./middleware/authenticationController";
 const app = express();
 const port = 3000;
 
 app.use(express.json());
+app.use(async (req: Request, res: Response, next: NextFunction) => {
+  if (req.url.startsWith("/carts")) {
+    return await authenticationMiddleware(req, res, next);
+  }
+
+  await next();
+});
 
 app.get("/carts/:username/items", (req, res) => {
   try {

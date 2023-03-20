@@ -32,7 +32,6 @@ export const authenticationMiddleware = async (
       authHeader!?.slice("basic".length + 1),
       "base64"
     ).toString();
-    console.log(credentials);
 
     const [username, password] = credentials.split(":");
 
