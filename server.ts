@@ -1,4 +1,5 @@
 import express from "express";
+import { json } from "stream/consumers";
 import {
   addItemToCart,
   removeItemFromCart,
@@ -6,6 +7,8 @@ import {
 } from "./controllers/cartController";
 const app = express();
 const port = 3000;
+
+app.use(express.json());
 
 app.get("/carts/:username/items", (req, res) => {
   try {
@@ -17,15 +20,20 @@ app.get("/carts/:username/items", (req, res) => {
   }
 });
 
-app.post("/carts/:username/items/:item", (req, res) => {
-  try {
-    const { username, item } = req.params;
-    const newItems = addItemToCart(username, item);
-    res.send({ cart: newItems });
-  } catch (e: any) {
-    res.status(e.code).send({ message: e.message });
-    return;
+app.post("/carts/:username/items", (req, res) => {
+  const { username } = req.params;
+  const { item, quantity }: { item: string; quantity: number } = req.body;
+  let newItems;
+
+  for (let i = 0; i < quantity; i++) {
+    try {
+      newItems = addItemToCart(username, item);
+    } catch (e: any) {
+      res.status(e.code).send({ message: e.message });
+      return;
+    }
   }
+  res.send({ cart: newItems });
 });
 
 app.delete("/carts/:username/items/:item", (req, res) => {

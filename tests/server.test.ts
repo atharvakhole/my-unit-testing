@@ -12,23 +12,29 @@ describe("add items to a cart", () => {
   });
 
   test("adding available items", async () => {
-    inventory.set("cheesecake", 1);
+    inventory.set("cheesecake", 3);
 
     const response = await request(app)
-      .post("/carts/test_user/items/cheesecake")
+      .post("/carts/test_user/items")
+      .send({ item: "cheesecake", quantity: 3 })
       .expect(200)
       .expect("Content-Type", /json/);
 
-    expect(response.body).toEqual({ cart: ["cheesecake"] });
+    expect(response.body).toEqual({
+      cart: ["cheesecake", "cheesecake", "cheesecake"],
+    });
     expect(inventory.get("cheesecake")).toEqual(0);
-    expect(carts).toEqual(new Map([["test_user", ["cheesecake"]]]));
+    expect(carts).toEqual(
+      new Map([["test_user", ["cheesecake", "cheesecake", "cheesecake"]]])
+    );
   });
 
   test("adding unavailable items", async () => {
     inventory.set("cheesecake", 0);
 
     const response = await request(app)
-      .post("/carts/test_user/items/cheesecake")
+      .post("/carts/test_user/items")
+      .send({ item: "cheesecake", quantity: 3 })
       .expect(400);
 
     expect(await response.body).toEqual({
