@@ -11,3 +11,11 @@ export const hashPassword = (password: string) => {
   hash.update(password);
   return hash.digest("hex");
 };
+
+export const credentialsAreValid = (username: string, password: string) => {
+  const userExists = users.has(username);
+  if (!userExists) return false;
+
+  const currentPasswordHash = users.get(username)?.passwordHash;
+  return hashPassword(password) === currentPasswordHash;
+};
