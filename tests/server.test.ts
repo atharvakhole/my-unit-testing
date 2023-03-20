@@ -2,6 +2,7 @@ import { server as app } from "../server";
 import { carts } from "../controllers/cartController";
 import { inventory } from "../controllers/inventoryController";
 import request from "supertest";
+import { users, hashPassword } from "../middleware/authenticationController";
 
 afterAll(() => app.close());
 
@@ -111,5 +112,46 @@ describe("delete items from cart", () => {
     expect(response.body).toEqual({ message: "brownie is not in the cart" });
     expect(carts).toEqual(new Map([["test_user", ["cheesecake"]]]));
     expect(inventory).toEqual(new Map([["cheesecake", 0]]));
+  });
+});
+
+describe("create accounts", () => {
+  afterEach(() => users.clear());
+
+  test("creating a new account", async () => {
+    const response = await request(app)
+      .put("/users/test_user")
+      .send({ email: "test_user@example.org", password: "a_password" })
+      .expect(200)
+      .expect("Content-Type", /json/);
+
+    expect(response.body).toEqual({
+      message: "test_user created successfully",
+    });
+  });
+
+  test("request fails when attempting to create duplicate user", async () => {
+    users.set("test_user", {
+      email: "test_user@example.org",
+      passwordHash: "a_password",
+    });
+
+    const response = await request(app)
+      .put("/users/test_user")
+      .send({ email: "test_user@blehbleh", password: "hello" })
+      .expect(409)
+      .expect("Content-Type", /json/);
+
+    expect(response.body).toEqual({
+      message: "test_user already exists",
+    });
+    expect(users).toEqual(
+      new Map<string, { email: string; passwordHash: string }>([
+        [
+          "test_user",
+          { email: "test_user@example.org", passwordHash: "a_password" },
+        ],
+      ])
+    );
   });
 });

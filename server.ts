@@ -1,10 +1,10 @@
 import express from "express";
-import { json } from "stream/consumers";
 import {
   addItemToCart,
   removeItemFromCart,
   getUserCart,
 } from "./controllers/cartController";
+import { users, hashPassword } from "./middleware/authenticationController";
 const app = express();
 const port = 3000;
 
@@ -45,6 +45,19 @@ app.delete("/carts/:username/items/:item", (req, res) => {
     res.status(e.code).send({ message: e.message });
     return;
   }
+});
+
+app.put("/users/:username", (req, res) => {
+  const { username } = req.params;
+  const { email, password }: { email: string; password: string } = req.body;
+  const userAlreadyExists = users.has(username);
+  if (userAlreadyExists) {
+    res.status(409).send({ message: `${username} already exists` });
+    return;
+  }
+
+  users.set(username, { email, passwordHash: hashPassword(password) });
+  return res.send({ message: `${username} created successfully` });
 });
 
 export const server = app.listen(port, () => {
