@@ -1,43 +1,101 @@
-import {
-  getAllCarts,
-  removeCart,
-  createNewCart,
-  getCart,
-  deleteAllCarts,
-} from "../script";
+import { getAllCarts, removeCart, createNewCart, getCart } from "../script";
 import Cart from "../Cart";
 import { logger } from "../logger";
+
+require("dotenv").config();
+
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 
 // Ideally, you'd want to define deleteAllCarts as a utility function
 // inside this test suite as it won't be a function that gets used in the application
 // and so that it doest get modified accidentally, outside this file
+afterAll(async () => {
+  await prisma.cart_items.deleteMany();
+  await prisma.carts.deleteMany();
+  await prisma.users.deleteMany();
+  await prisma.inventory.deleteMany();
+
+  // Reset the ID sequence for the `cart_items` table
+  await prisma.$executeRaw`ALTER SEQUENCE cart_items_id_seq RESTART WITH 1;`;
+  await prisma.$disconnect();
+});
 
 describe("A new cart is created for every user", () => {
   beforeEach(async () => {
-    await deleteAllCarts();
+    await prisma.cart_items.deleteMany();
+    await prisma.carts.deleteMany();
+    await prisma.users.deleteMany();
+    await prisma.inventory.deleteMany();
+
+    // Reset the ID sequence for the `cart_items` table
+    await prisma.$executeRaw`ALTER SEQUENCE cart_items_id_seq RESTART WITH 1;`;
   });
   test("The createNewCart function creates a valid new user in DB", async () => {
-    await createNewCart("Atharva2");
-    const userReturned = await getCart("Atharva2");
-
-    expect(userReturned).toEqual({
-      id: 1,
-      username: "Atharva2",
+    await prisma.users.create({
+      data: {
+        username: "test_user",
+        email: "test_user@example.org",
+        passwordHash: "a_password",
+      },
     });
+
+    await createNewCart("test_user");
+    const usersState = await prisma.users.findMany({
+      include: {
+        carts: {
+          include: {
+            cart_items: { select: { itemName: true, quantity: true } },
+          },
+        },
+      },
+    });
+
+    expect(usersState).toEqual([
+      {
+        username: "test_user",
+        email: "test_user@example.org",
+        passwordHash: "a_password",
+        carts: [
+          {
+            username: "test_user",
+            cart_items: [],
+          },
+        ],
+      },
+    ]);
   });
 
   test("The removeCart function deletes a given user from DB", async () => {
-    await createNewCart("User1");
-    await createNewCart("User2");
-    await createNewCart("User3");
+    await prisma.users.create({
+      data: {
+        username: "User1",
+        email: "User1@example.org",
+        passwordHash: "a_password",
+        carts: { create: {} },
+      },
+    });
+    await prisma.users.create({
+      data: {
+        username: "User2",
+        email: "User1@example.org",
+        passwordHash: "a_password",
+        carts: { create: {} },
+      },
+    });
+    await prisma.users.create({
+      data: {
+        username: "User3",
+        email: "User1@example.org",
+        passwordHash: "a_password",
+        carts: { create: {} },
+      },
+    });
 
-    await removeCart(3);
+    await removeCart("User3");
 
-    const expectedCarts = [
-      { id: 1, username: "User1" },
-      { id: 2, username: "User2" },
-    ];
-    const cartsReturned = await getAllCarts();
+    const expectedCarts = [{ username: "User1" }, { username: "User2" }];
+    const cartsReturned = await prisma.carts.findMany();
 
     expect(cartsReturned).toEqual(expectedCarts);
   });

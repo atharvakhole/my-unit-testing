@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>44/44</span>
+                <span class='fraction'>47/47</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>43/43</span>
+                <span class='fraction'>46/46</span>
             </div>
         
             
@@ -139,7 +139,21 @@
 <a name='L74'></a><a href='#L74'>74</a>
 <a name='L75'></a><a href='#L75'>75</a>
 <a name='L76'></a><a href='#L76'>76</a>
-<a name='L77'></a><a href='#L77'>77</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -149,6 +163,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -166,6 +184,7 @@
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
@@ -175,7 +194,6 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">4x</span>
@@ -203,12 +221,22 @@
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -222,12 +250,16 @@ import {
   getUserCart,
 } from "./controllers/cartController";
 import {
-  users,
   hashPassword,
   authenticationMiddleware,
 } from "./middleware/authenticationController";
 const app = express();
 const port = 3000;
+&nbsp;
+require("dotenv").config();
+&nbsp;
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 &nbsp;
 app.use(express.json());
 app.use(async (req: Request, res: Response, next: NextFunction) =&gt; {
@@ -238,53 +270,63 @@ app.use(async (req: Request, res: Response, next: NextFunction) =&gt; {
   await next();
 });
 &nbsp;
-app.get("/carts/:username/items", (req, res) =&gt; {
+app.get("/carts/:username/items", async (req, res) =&gt; {
   try {
     const { username } = req.params;
-    const cart = getUserCart(username);
-    res.send({ cart: cart });
+    const cart = await getUserCart(username);
+&nbsp;
+    res.send(cart);
   } catch (e: any) {
     res.status(e.code).send({ message: e.message });
   }
 });
 &nbsp;
-app.post("/carts/:username/items", (req, res) =&gt; {
+app.post("/carts/:username/items", async (req, res) =&gt; {
   const { username } = req.params;
   const { item, quantity }: { item: string; quantity: number } = req.body;
-  let newItems;
 &nbsp;
   for (let i = 0; i &lt; quantity; i++) {
     try {
-      newItems = addItemToCart(username, item);
+      await addItemToCart(username, item);
     } catch (e: any) {
       res.status(e.code).send({ message: e.message });
       return;
     }
   }
-  res.send({ cart: newItems });
+  res.send({ message: "Items added to cart" }).status(200);
 });
 &nbsp;
-app.delete("/carts/:username/items/:item", (req, res) =&gt; {
+app.delete("/carts/:username/items/:item", async (req, res) =&gt; {
   try {
     const { username, item } = req.params;
-    const newItems = removeItemFromCart(username, item);
-    res.send({ cart: newItems });
+    await removeItemFromCart(username, item);
+    res.send({ message: `Removed 1 ${item} from cart` });
   } catch (e: any) {
     res.status(e.code).send({ message: e.message });
     return;
   }
 });
 &nbsp;
-app.put("/users/:username", (req, res) =&gt; {
+app.put("/users/:username", async (req, res) =&gt; {
   const { username } = req.params;
   const { email, password }: { email: string; password: string } = req.body;
-  const userAlreadyExists = users.has(username);
+  const userAlreadyExists = await prisma.users.findFirst({
+    where: {
+      username: username,
+    },
+  });
   if (userAlreadyExists) {
     res.status(409).send({ message: `${username} already exists` });
     return;
   }
 &nbsp;
-  users.set(username, { email, passwordHash: hashPassword(password) });
+  await prisma.users.create({
+    data: {
+      username: username,
+      email: email,
+      passwordHash: hashPassword(password),
+    },
+  });
   return res.send({ message: `${username} created successfully` });
 });
 &nbsp;
@@ -298,7 +340,7 @@ export const server = app.listen(port, () =&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2023-03-20T17:01:06.195Z
+                at 2023-03-23T10:19:58.432Z
             </div>
         <script src="../prettify.js"></script>
         <script>

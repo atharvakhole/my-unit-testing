@@ -1,32 +1,68 @@
 import { server as app } from "../server";
-import { carts } from "../controllers/cartController";
-import { inventory } from "../controllers/inventoryController";
 import request from "supertest";
-import { users, hashPassword } from "../middleware/authenticationController";
+import { hashPassword } from "../middleware/authenticationController";
+
+require("dotenv").config();
+
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 
 const user = "test_user";
 const password = "a_password";
 const validAuth = Buffer.from(`${user}:${password}`).toString("base64");
-
 const authHeader = `Basic ${validAuth}`;
-const createUser = () => {
-  users.set(user, {
-    email: "test_user@example.org",
-    passwordHash: hashPassword(password),
+
+const createUser = async () => {
+  await prisma.users.create({
+    data: {
+      username: "test_user",
+      email: "test_user@example.org",
+      passwordHash: hashPassword(password),
+    },
   });
 };
 
-afterAll(() => app.close());
+afterAll(async () => {
+  app.close();
+  await prisma.cart_items.deleteMany();
+  await prisma.carts.deleteMany();
+  await prisma.users.deleteMany();
+  await prisma.inventory.deleteMany();
 
-describe("add items to a cart", () => {
-  beforeEach(() => {
-    inventory.clear();
-    carts.clear();
-    createUser();
+  // Reset the ID sequence for the `cart_items` table
+  await prisma.$executeRaw`ALTER SEQUENCE cart_items_id_seq RESTART WITH 1;`;
+  await prisma.$disconnect();
+});
+
+describe("post /carts/:username/items ", () => {
+  beforeEach(async () => {
+    await prisma.cart_items.deleteMany();
+    await prisma.carts.deleteMany();
+    await prisma.users.deleteMany();
+    await prisma.inventory.deleteMany();
+
+    // Reset the ID sequence for the `cart_items` table
+    await prisma.$executeRaw`ALTER SEQUENCE cart_items_id_seq RESTART WITH 1;`;
   });
 
-  test("adding available items", async () => {
-    inventory.set("cheesecake", 3);
+  test("adding available items to existing cart", async () => {
+    await prisma.inventory.create({
+      data: {
+        itemName: "cheesecake",
+        quantity: 4,
+      },
+    });
+
+    await createUser();
+
+    await prisma.users.update({
+      where: {
+        username: "test_user",
+      },
+      data: {
+        carts: { create: {} },
+      },
+    });
 
     const response = await request(app)
       .post("/carts/test_user/items")
@@ -35,40 +71,107 @@ describe("add items to a cart", () => {
       .expect(200)
       .expect("Content-Type", /json/);
 
-    expect(response.body).toEqual({
-      cart: ["cheesecake", "cheesecake", "cheesecake"],
+    const inventoryState = await prisma.inventory.findMany();
+    const usersState = await prisma.users.findMany({
+      include: {
+        carts: {
+          include: {
+            cart_items: { select: { itemName: true, quantity: true } },
+          },
+        },
+      },
     });
-    expect(inventory.get("cheesecake")).toEqual(0);
-    expect(carts).toEqual(
-      new Map([["test_user", ["cheesecake", "cheesecake", "cheesecake"]]])
-    );
+
+    expect(await response.body).toEqual({
+      message: "Items added to cart",
+    });
+    expect(inventoryState).toEqual([{ itemName: "cheesecake", quantity: 1 }]);
+    expect(usersState).toEqual([
+      {
+        username: "test_user",
+        email: "test_user@example.org",
+        passwordHash: hashPassword("a_password"),
+        carts: [
+          {
+            username: "test_user",
+            cart_items: [{ itemName: "cheesecake", quantity: 3 }],
+          },
+        ],
+      },
+    ]);
   });
 
   test("adding unavailable items", async () => {
-    inventory.set("cheesecake", 0);
-
+    await prisma.inventory.create({
+      data: {
+        itemName: "cheesecake",
+        quantity: 0,
+      },
+    });
+    await createUser();
+    await prisma.users.update({
+      where: {
+        username: "test_user",
+      },
+      data: {
+        carts: { create: {} },
+      },
+    });
     const response = await request(app)
       .post("/carts/test_user/items")
       .set("authorization", authHeader)
       .send({ item: "cheesecake", quantity: 3 })
       .expect(400);
 
+    const inventoryState = await prisma.inventory.findMany();
+    const usersState = await prisma.users.findMany({
+      select: {
+        username: true,
+        carts: {
+          include: {
+            cart_items: { select: { itemName: true, quantity: true } },
+          },
+        },
+      },
+    });
     expect(await response.body).toEqual({
       message: "cheesecake is unavailable",
     });
-    expect(inventory.get("cheesecake")).toEqual(0);
-    expect(carts).toEqual(new Map());
+    expect(inventoryState).toEqual([{ itemName: "cheesecake", quantity: 0 }]);
+    expect(usersState).toEqual([
+      {
+        username: "test_user",
+        carts: [{ username: "test_user", cart_items: [] }],
+      },
+    ]);
   });
 });
 
 describe("retrieve user cart", () => {
-  beforeEach(() => {
-    inventory.clear();
-    carts.clear();
+  beforeEach(async () => {
+    await prisma.cart_items.deleteMany();
+    await prisma.carts.deleteMany();
+    await prisma.users.deleteMany();
+    await prisma.inventory.deleteMany();
+
+    // Reset the ID sequence for the `cart_items` table
+    await prisma.$executeRaw`ALTER SEQUENCE cart_items_id_seq RESTART WITH 1;`;
   });
 
   test("returns correct cart for existing user", async () => {
-    carts.set("test_user", ["cheesecake", "brownie"]);
+    await createUser();
+    await prisma.users.update({
+      where: { username: "test_user" },
+      data: {
+        carts: {
+          create: {
+            cart_items: {
+              create: { itemName: "brownie", quantity: 1 },
+            },
+          },
+        },
+      },
+    });
 
     const response = await request(app)
       .get("/carts/test_user/items")
@@ -76,12 +179,20 @@ describe("retrieve user cart", () => {
       .expect(200);
 
     expect(await response.body).toEqual({
-      cart: ["cheesecake", "brownie"],
+      cart_items: [
+        {
+          cartUser: "test_user",
+          id: 1,
+          itemName: "brownie",
+          quantity: 1,
+        },
+      ],
+      username: "test_user",
     });
   });
 
   test("request fails with an error for non-existing user", async () => {
-    carts.set("test_user", ["cheesecake", "brownie"]);
+    await createUser();
     const response = await request(app)
       .get("/carts/unknown_user/items")
       .set("authorization", authHeader)
@@ -92,26 +203,82 @@ describe("retrieve user cart", () => {
 });
 
 describe("delete items from cart", () => {
-  beforeEach(() => {
-    inventory.clear();
-    carts.clear();
+  beforeEach(async () => {
+    await prisma.cart_items.deleteMany();
+    await prisma.carts.deleteMany();
+    await prisma.users.deleteMany();
+    await prisma.inventory.deleteMany();
+
+    // Reset the ID sequence for the `cart_items` table
+    await prisma.$executeRaw`ALTER SEQUENCE cart_items_id_seq RESTART WITH 1;`;
   });
 
   test("returns correct cart upon removing valid item", async () => {
-    inventory.set("macaroon", 0);
-    carts.set("test_user", ["cheesecake", "brownie", "macaroon"]);
-
+    await createUser();
+    await prisma.users.update({
+      where: { username: "test_user" },
+      data: {
+        carts: {
+          create: {
+            cart_items: {
+              createMany: {
+                data: [
+                  { itemName: "cheesecake", quantity: 1 },
+                  { itemName: "macaroon", quantity: 1 },
+                  { itemName: "brownie", quantity: 3 },
+                ],
+              },
+            },
+          },
+        },
+      },
+    });
+    await prisma.inventory.create({
+      data: {
+        itemName: "macaroon",
+        quantity: 0,
+      },
+    });
     const response = await request(app)
       .delete("/carts/test_user/items/macaroon")
       .set("authorization", authHeader)
       .expect(200);
 
-    expect(await response.body).toEqual({ cart: ["cheesecake", "brownie"] });
-    expect(inventory.get("macaroon")).toEqual(1);
-    expect(carts).toEqual(new Map([["test_user", ["cheesecake", "brownie"]]]));
+    const inventoryState = await prisma.inventory.findMany();
+
+    const usersState = await prisma.users.findMany({
+      select: {
+        username: true,
+        carts: {
+          include: {
+            cart_items: { select: { itemName: true, quantity: true } },
+          },
+        },
+      },
+    });
+    expect(await response.body).toEqual({
+      message: "Removed 1 macaroon from cart",
+    });
+    expect(inventoryState).toEqual([{ itemName: "macaroon", quantity: 1 }]);
+    expect(usersState).toEqual([
+      {
+        username: "test_user",
+        carts: [
+          {
+            cart_items: [
+              { itemName: "cheesecake", quantity: 1 },
+              { itemName: "brownie", quantity: 3 },
+              { itemName: "macaroon", quantity: 0 },
+            ],
+            username: "test_user",
+          },
+        ],
+      },
+    ]);
   });
 
   test("request fails with an error for non-existing user", async () => {
+    await createUser();
     const response = await request(app)
       .delete("/carts/unknown_user/items/cheesecake")
       .set("authorization", authHeader)
@@ -121,8 +288,40 @@ describe("delete items from cart", () => {
   });
 
   test("request fails with an error for non-existing cart item", async () => {
-    inventory.set("cheesecake", 0);
-    carts.set("test_user", ["cheesecake"]);
+    await prisma.inventory.create({
+      data: {
+        itemName: "cheesecake",
+        quantity: 0,
+      },
+    });
+    await createUser();
+    await prisma.users.update({
+      where: { username: "test_user" },
+      data: {
+        carts: {
+          create: {
+            cart_items: {
+              create: {
+                itemName: "cheesecake",
+                quantity: 1,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const inventoryState = await prisma.inventory.findMany();
+    const usersState = await prisma.users.findMany({
+      select: {
+        username: true,
+        carts: {
+          include: {
+            cart_items: { select: { itemName: true, quantity: true } },
+          },
+        },
+      },
+    });
 
     const response = await request(app)
       .delete("/carts/test_user/items/brownie")
@@ -130,13 +329,31 @@ describe("delete items from cart", () => {
       .expect(400);
 
     expect(response.body).toEqual({ message: "brownie is not in the cart" });
-    expect(carts).toEqual(new Map([["test_user", ["cheesecake"]]]));
-    expect(inventory).toEqual(new Map([["cheesecake", 0]]));
+    expect(usersState).toEqual([
+      {
+        username: "test_user",
+        carts: [
+          {
+            cart_items: [{ itemName: "cheesecake", quantity: 1 }],
+            username: "test_user",
+          },
+        ],
+      },
+    ]);
+    expect(inventoryState).toEqual([{ itemName: "cheesecake", quantity: 0 }]);
   });
 });
 
 describe("create accounts", () => {
-  beforeEach(() => users.clear());
+  beforeEach(async () => {
+    await prisma.cart_items.deleteMany();
+    await prisma.carts.deleteMany();
+    await prisma.users.deleteMany();
+    await prisma.inventory.deleteMany();
+
+    // Reset the ID sequence for the `cart_items` table
+    await prisma.$executeRaw`ALTER SEQUENCE cart_items_id_seq RESTART WITH 1;`;
+  });
 
   test("creating a new account", async () => {
     const response = await request(app)
@@ -151,26 +368,25 @@ describe("create accounts", () => {
   });
 
   test("request fails when attempting to create duplicate user", async () => {
-    createUser();
+    await createUser();
     const response = await request(app)
       .put("/users/test_user")
-      .send({ email: "test_user@blehbleh", password: "hello" })
+      .send({ email: "test_user@differentmail.org", password: "hello" })
       .expect(409)
       .expect("Content-Type", /json/);
+
+    const usersState = await prisma.users.findMany();
 
     expect(response.body).toEqual({
       message: "test_user already exists",
     });
-    expect(users).toEqual(
-      new Map<string, { email: string; passwordHash: string }>([
-        [
-          "test_user",
-          {
-            email: "test_user@example.org",
-            passwordHash: hashPassword("a_password"),
-          },
-        ],
-      ])
-    );
+
+    expect(usersState).toEqual([
+      {
+        username: "test_user",
+        email: "test_user@example.org",
+        passwordHash: hashPassword(password),
+      },
+    ]);
   });
 });

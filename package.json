@@ -5,7 +5,7 @@
   "main": "server.ts",
   "type": "module",
   "scripts": {
-    "test": "jest --detect-open-handles --verbose",
+    "test": "jest --runInBand --verbose",
     "dev": "ts-node-dev --respawn --transpile-only ./server.ts"
   },
   "keywords": [],

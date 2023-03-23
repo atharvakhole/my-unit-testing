@@ -11,14 +11,27 @@ datasource db {
 }
 
 model carts {
-  id         Int          @id @default(autoincrement())
-  username   String
+  user       users        @relation(fields: [username], references: [username])
   cart_items cart_items[]
+  username   String       @id
 }
 
 model cart_items {
   id       Int    @id @default(autoincrement())
   itemName String
-  cart     carts  @relation(fields: [cartId], references: [id])
-  cartId   Int
+  quantity Int
+  cart     carts  @relation(fields: [cartUser], references: [username])
+  cartUser String
+}
+
+model users {
+  username     String  @id
+  email        String
+  passwordHash String
+  carts        carts[]
+}
+
+model inventory {
+  itemName String @id
+  quantity Int
 }

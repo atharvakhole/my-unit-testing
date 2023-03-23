@@ -1,4 +1,3 @@
-import { createNewCart, getCart } from "./script";
 import { logger } from "./logger";
 
 type item = {

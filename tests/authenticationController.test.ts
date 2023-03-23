@@ -1,10 +1,18 @@
 import crypto from "crypto";
 import {
-  users,
   credentialsAreValid,
   hashPassword,
   authenticationMiddleware,
 } from "../middleware/authenticationController";
+require("dotenv").config();
+
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
+
+const deleteAllUsers = async () => {
+  await prisma.$queryRawUnsafe("Truncate users restart identity cascade");
+  await prisma.$disconnect();
+};
 
 type response = {
   status: ((status: number) => void) | number;
@@ -12,9 +20,13 @@ type response = {
   body: any;
 };
 
-afterEach(() => users.clear());
+afterEach(async () => {
+  deleteAllUsers();
+  await prisma.$disconnect();
+});
 
 describe("hashPassword", () => {
+  afterEach(async () => await prisma.$disconnect());
   test("hashing passwwords", () => {
     const plainTextPassword = "password_example";
     const hash = crypto.createHash("sha256");
@@ -27,18 +39,27 @@ describe("hashPassword", () => {
 });
 
 describe("credentialsAreValid", () => {
-  test("validating credentials", () => {
-    users.set("test_user", {
-      email: "test_user@example.org",
-      passwordHash: hashPassword("a_password"),
+  afterEach(async () => await prisma.$disconnect());
+  test("validating credentials", async () => {
+    await prisma.users.create({
+      data: {
+        username: "test_user",
+        email: "test_user@example.org",
+        passwordHash: hashPassword("a_password"),
+      },
     });
 
-    const hasValidCredentials = credentialsAreValid("test_user", "a_password");
+    const hasValidCredentials = await credentialsAreValid(
+      "test_user",
+      "a_password"
+    );
     expect(hasValidCredentials).toBe(true);
   });
 });
 
 describe("authenticationMiddleware", () => {
+  beforeEach(async () => await deleteAllUsers());
+  afterEach(async () => await prisma.$disconnect());
   test("returning an error if the credentials are not valid", async () => {
     const fakeAuth = Buffer.from("invalid:credentials").toString("base64");
 
@@ -69,11 +90,14 @@ describe("authenticationMiddleware", () => {
   });
 
   test("calling next() when credentials are valid", async () => {
-    users.set("test_user", {
-      email: "test_user@example.org",
-      passwordHash: hashPassword("a_password"),
-    });
     const auth = Buffer.from("test_user:a_password").toString("base64");
+    await prisma.users.create({
+      data: {
+        username: "test_user",
+        email: "test_user@example.org",
+        passwordHash: hashPassword("a_password"),
+      },
+    });
 
     // mock request object
     const req = {

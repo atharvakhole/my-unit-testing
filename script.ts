@@ -1,8 +1,7 @@
 require("dotenv").config();
 
-import { PrismaClient } from "@prisma/client";
+import { cart_items, PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
-
 // carts table
 export const deleteAllCarts = async () => {
   await prisma.$queryRawUnsafe("Truncate carts restart identity cascade");
@@ -10,12 +9,40 @@ export const deleteAllCarts = async () => {
 };
 
 export const createNewCart = async (username: string) => {
-  await prisma.carts.create({
-    data: {
+  const cartFromDB = await prisma.carts.findFirst({
+    where: {
       username: username,
     },
   });
-  prisma.$disconnect();
+
+  const userFromDB = await prisma.users.findFirst({
+    where: { username: username },
+  });
+
+  if (!userFromDB) {
+    const err = {
+      message: "User not found",
+      code: 404,
+    };
+    throw err;
+  }
+
+  if (cartFromDB) {
+    const err = {
+      message: "Cart already exists",
+      code: 409,
+    };
+    await prisma.$disconnect();
+    throw err;
+  }
+
+  await prisma.users.update({
+    where: { username: username },
+    data: {
+      carts: { create: {} },
+    },
+  });
+  await prisma.$disconnect();
 };
 
 export const getCart = async (username: string) => {
@@ -24,23 +51,45 @@ export const getCart = async (username: string) => {
       username: username,
     },
   });
-  prisma.$disconnect();
+
+  if (!user) {
+    const err = {
+      message: "Cart not found",
+      code: "404",
+    };
+  }
+  await prisma.$disconnect();
   return user;
 };
 
 export const getAllCarts = async () => {
+  const cartsMap = new Map<string, cart_items[]>();
+
   const carts = await prisma.carts.findMany();
-  prisma.$disconnect();
-  return carts;
+
+  carts.map(async (cart) => {
+    const cartItems = await prisma.cart_items.findMany({
+      where: {
+        cartUser: cart.username,
+      },
+    });
+
+    cartsMap.set(cart.username, cartItems);
+  });
+  await prisma.$disconnect();
+  return cartsMap;
 };
 
-export const removeCart = async (id: number) => {
-  await prisma.carts.delete({
+export const removeCart = async (username: string) => {
+  await prisma.cart_items.deleteMany({
     where: {
-      id: id,
+      cartUser: username,
     },
   });
-  prisma.$disconnect();
+  await prisma.carts.delete({
+    where: {
+      username: username,
+    },
+  });
+  await prisma.$disconnect();
 };
-
-// cart_items table

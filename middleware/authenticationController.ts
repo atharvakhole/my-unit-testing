@@ -1,11 +1,9 @@
 import crypto from "crypto";
-import { NextFunction, Request, Response } from "express";
-type user = {
-  email: string;
-  passwordHash: string;
-};
+import { NextFunction } from "express";
+require("dotenv").config();
 
-export const users = new Map<string, user>();
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 
 export const hashPassword = (password: string) => {
   const hash = crypto.createHash("sha256");
@@ -13,12 +11,26 @@ export const hashPassword = (password: string) => {
   return hash.digest("hex");
 };
 
-export const credentialsAreValid = (username: string, password: string) => {
-  const userExists = users.has(username);
-  if (!userExists) return false;
+export const credentialsAreValid = async (
+  username: string,
+  password: string
+) => {
+  const user = await prisma.users.findFirst({
+    where: {
+      username: username,
+    },
+  });
+  await prisma.$disconnect();
 
-  const currentPasswordHash = users.get(username)?.passwordHash;
-  return hashPassword(password) === currentPasswordHash;
+  if (!user) return false;
+
+  return hashPassword(password) === user.passwordHash;
+
+  // const userExists = users.has(username);
+  // if (!userExists) return false;
+
+  // const currentPasswordHash = users.get(username)?.passwordHash;
+  // return hashPassword(password) === currentPasswordHash;
 };
 
 export const authenticationMiddleware = async (
@@ -34,12 +46,15 @@ export const authenticationMiddleware = async (
     ).toString();
 
     const [username, password] = credentials.split(":");
+    const validCredentialsSent = await credentialsAreValid(username, password);
 
-    if (!credentialsAreValid(username, password)) {
+    if (!validCredentialsSent) {
       throw new Error("invalid credentials");
     }
   } catch (e) {
     res.status(401).send({ message: "please provide valid credentials" });
+    console.log("please provide valid credentials");
+
     return;
   }
 
