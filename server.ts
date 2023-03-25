@@ -14,6 +14,7 @@ const port = 3000;
 require("dotenv").config();
 
 import { PrismaClient } from "@prisma/client";
+import axios from "axios";
 const prisma = new PrismaClient();
 
 app.use(express.json());
@@ -23,6 +24,34 @@ app.use(async (req: Request, res: Response, next: NextFunction) => {
   }
 
   await next();
+});
+
+app.get("/inventory/:itemName", async (req, res) => {
+  const { itemName } = req.params;
+  const response = await axios.get(
+    `https://www.themealdb.com/api/json/v1/1/filter.php?i=${itemName}`
+  );
+  console.log(response.data);
+
+  const { meals: recipes } = await response.data;
+  const inventoryItem = await prisma.inventory.findUnique({
+    where: { itemName: itemName },
+  });
+  console.log(inventoryItem);
+
+  const data = {
+    ...inventoryItem,
+    recipes,
+  };
+
+  console.log(data);
+
+  if (!data) {
+    res.status(404).send({ message: `${itemName} not found` });
+    return;
+  }
+
+  res.send(data);
 });
 
 app.get("/carts/:username/items", async (req, res) => {

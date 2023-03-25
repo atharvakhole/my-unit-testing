@@ -1,6 +1,7 @@
 import { server as app } from "../server";
 import request from "supertest";
 import { hashPassword } from "../middleware/authenticationController";
+import axios from "axios";
 
 require("dotenv").config();
 
@@ -343,7 +344,6 @@ describe("delete items from cart", () => {
     expect(inventoryState).toEqual([{ itemName: "cheesecake", quantity: 0 }]);
   });
 });
-
 describe("create accounts", () => {
   beforeEach(async () => {
     await prisma.cart_items.deleteMany();
@@ -388,5 +388,41 @@ describe("create accounts", () => {
         passwordHash: hashPassword(password),
       },
     ]);
+  });
+});
+
+describe("fetch inventory items", () => {
+  const eggs = { itemName: "egg", quantity: 3 };
+  const applepie = { itemName: "apple pie", quantity: 1 };
+
+  beforeEach(async () => {
+    await prisma.cart_items.deleteMany();
+    await prisma.carts.deleteMany();
+    await prisma.users.deleteMany();
+    await prisma.inventory.deleteMany();
+
+    // Reset the ID sequence for the `cart_items` table
+    await prisma.$executeRaw`ALTER SEQUENCE cart_items_id_seq RESTART WITH 1;`;
+  });
+
+  beforeEach(async () => {
+    await prisma.inventory.createMany({ data: [eggs, applepie] });
+  });
+
+  test("can fetch an item from the inventory", async () => {
+    const thirdPartyResponse = await axios.get(
+      "https://www.themealdb.com/api/json/v1/1/filter.php?i=egg"
+    );
+
+    const { meals: recipes } = await thirdPartyResponse.data;
+    const response = await request(app)
+      .get(`/inventory/egg`)
+      .expect(200)
+      .expect("Content-Type", /json/);
+
+    expect(response.body).toEqual({
+      ...eggs,
+      recipes,
+    });
   });
 });
