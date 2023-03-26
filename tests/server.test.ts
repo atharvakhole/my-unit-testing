@@ -1,7 +1,7 @@
 import { server as app } from "../server";
 import request from "supertest";
 import { hashPassword } from "../middleware/authenticationController";
-import axios from "axios";
+import axios from "../__mocks__/axios";
 
 require("dotenv").config();
 
@@ -410,15 +410,34 @@ describe("fetch inventory items", () => {
   });
 
   test("can fetch an item from the inventory", async () => {
-    const thirdPartyResponse = await axios.get(
-      "https://www.themealdb.com/api/json/v1/1/filter.php?i=egg"
-    );
+    const mockThirdPartyResponse = {
+      data: {
+        meals: [
+          {
+            idMeal: "1",
+            strMeal: "Scrambled eggs",
+            strMealThumb:
+              "https://www.themealdb.com/images/media/meals/ysqupp1511553350.jpg",
+          },
+          {
+            idMeal: "2",
+            strMeal: "Egg salad",
+            strMealThumb:
+              "https://www.themealdb.com/images/media/meals/uwvtpv1511296276.jpg",
+          },
+        ],
+      },
+    };
 
-    const { meals: recipes } = await thirdPartyResponse.data;
+    const { meals: recipes } = await mockThirdPartyResponse.data;
     const response = await request(app)
       .get(`/inventory/egg`)
       .expect(200)
       .expect("Content-Type", /json/);
+
+    expect(axios.get).toHaveBeenCalledWith(
+      "https://www.themealdb.com/api/json/v1/1/filter.php?i=egg"
+    );
 
     expect(response.body).toEqual({
       ...eggs,
