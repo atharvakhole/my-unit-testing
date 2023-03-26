@@ -1,7 +1,7 @@
 import { server as app } from "../server";
 import request from "supertest";
 import { hashPassword } from "../middleware/authenticationController";
-import axios from "../__mocks__/axios";
+import nock from "nock";
 
 require("dotenv").config();
 
@@ -407,39 +407,30 @@ describe("fetch inventory items", () => {
 
   beforeEach(async () => {
     await prisma.inventory.createMany({ data: [eggs, applepie] });
+    nock.cleanAll();
   });
 
   test("can fetch an item from the inventory", async () => {
     const mockThirdPartyResponse = {
-      data: {
-        meals: [
-          {
-            idMeal: "1",
-            strMeal: "Scrambled eggs",
-            strMealThumb:
-              "https://www.themealdb.com/images/media/meals/ysqupp1511553350.jpg",
-          },
-          {
-            idMeal: "2",
-            strMeal: "Egg salad",
-            strMealThumb:
-              "https://www.themealdb.com/images/media/meals/uwvtpv1511296276.jpg",
-          },
-        ],
-      },
+      meals: [
+        {
+          name: "Omelette du Fromage",
+        },
+      ],
     };
 
-    const { meals: recipes } = await mockThirdPartyResponse.data;
+    nock("https://www.themealdb.com")
+      .get("/api/json/v1/1/filter.php")
+      .query({ i: "egg" })
+      .reply(200, mockThirdPartyResponse);
+
+    const { meals: recipes } = await mockThirdPartyResponse;
     const response = await request(app)
       .get(`/inventory/egg`)
       .expect(200)
       .expect("Content-Type", /json/);
 
-    expect(axios.get).toHaveBeenCalledWith(
-      "https://www.themealdb.com/api/json/v1/1/filter.php?i=egg"
-    );
-
-    expect(response.body).toEqual({
+    expect(await response.body).toEqual({
       ...eggs,
       recipes,
     });
